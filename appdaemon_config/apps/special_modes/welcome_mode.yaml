@@ -1,0 +1,54 @@
+welcome_mode:
+  module: base.mode_core
+  class: ModeAutomationCore
+  config:
+    mode_id: welcome_mode
+    mode_name: "Welcome Mode"
+    guard_entity: "input_boolean.common_repairmode_on"
+    features:
+      door_open_scene:
+        type: mode_presence_trigger
+        presence_entity: binary_sensor.entrance_d1_contact
+        triggers:
+          - to: "on"
+        actions:
+          - type: call_service
+            service: switch/turn_on
+            target:
+              entity_id: switch.living_switch_main_l2
+          - type: call_service
+            service: light/turn_on
+            target:
+              entity_id:
+                - light.living_l3_1
+                - light.living_l3_2
+                - light.living_l3_3
+            data:
+              transition: 5
+              color_temp_kelvin: 6500
+              brightness_pct: 100
+
+      door_closed_scene_clear:
+        type: mode_presence_trigger
+        presence_entity: binary_sensor.entrance_d1_contact
+        triggers:
+          - to: "off"
+            duration: 180
+        conditions:
+          - type: state
+            entity_id: binary_sensor.living_m1_presence
+            state: "off"
+        actions:
+          - type: call_service
+            service: switch/turn_off
+            target:
+              entity_id: switch.living_switch_main_l2
+          - type: call_service
+            service: light/turn_off
+            target:
+              entity_id:
+                - light.living_l3_1
+                - light.living_l3_2
+                - light.living_l3_3
+            data:
+              transition: 3
