@@ -1,0 +1,938 @@
+hello_world:
+  module: hello
+  class: HelloWorld
+
+device_scanner:
+  module: device_scanner
+  class: DeviceScanner
+  api_token: !secret internal_api_token
+  backend_url: !secret backend_url
+
+update_manager:
+  module: update_manager
+  class: UpdateManager
+  manifest_url: "https://hio-on-premise-releases-584939305305.s3.ap-northeast-2.amazonaws.com/version-manifest.json"
+  project_dir: "/conf/.."
+
+# ---------------------------------------------------------------------------
+# Helpers
+# ---------------------------------------------------------------------------
+global_helper_manager:
+  module: base.helper_manager
+  class: HelperManager
+  helpers:
+    room_name: "global"
+
+    input_numbers:
+      room_3_sublight_color_index:
+        min: 0
+        max: 5
+        step: 1
+        default: 0
+        name: "Room3 Sublight Palette"
+        mode: slider
+      bath1_default_brightness:
+        min: 0
+        max: 100
+        step: 5
+        default: 80
+        name: "Bath1 Default Brightness"
+        icon: mdi:brightness-7
+      bath1_default_temperature:
+        min: 2000
+        max: 6500
+        step: 100
+        default: 4000
+        name: "Bath1 Default Temperature"
+        icon: mdi:sun-thermometer
+      bath1_default_targethumidity:
+        min: 40
+        max: 80
+        step: 1
+        default: 60
+        name: "Bath1 Target Humidity"
+        unit: "%"
+      bath2_default_targethumidity:
+        min: 40
+        max: 80
+        step: 1
+        default: 60
+        name: "Bath2 Target Humidity"
+        unit: "%"
+      bar_default_brightness:
+        min: 0
+        max: 100
+        step: 5
+        default: 80
+        name: "Bar Default Brightness"
+      bar_default_temperature:
+        min: 2000
+        max: 6500
+        step: 100
+        default: 4000
+        name: "Bar Default Temperature"
+        icon: mdi:sun-thermometer
+      nap_duration_input:
+        min: 0
+        max: 300
+        step: 1
+        default: 20
+        name: "Nap Duration (min)"
+        icon: mdi:timer-sand
+        unit: min
+        mode: box
+      cooking_timer_minutes:
+        min: 0
+        max: 180
+        step: 0.5
+        default: 0
+        name: "Cooking Timer Minutes"
+        icon: mdi:timer
+
+    input_booleans:
+      room3_manualmode_on:
+        default: false
+        name: "Room3 Manual Mode"
+      room3_sleepmode_on:
+        default: false
+        name: "Room3 Sleep Mode"
+      room3_napmode_on:
+        default: false
+        name: "Room3 Nap Mode"
+      kitchen_manualmode_on:
+        default: false
+        name: "Kitchen Manual Mode"
+      living_manualmode_on:
+        default: false
+        name: "Living Manual Mode"
+      living_moviemode_on:
+        default: false
+        name: "Living Movie Mode"
+      bath1_manualmode_on:
+        default: false
+        name: "Bath1 Manual Mode"
+      bath2_manualmode_on:
+        default: false
+        name: "Bath2 Manual Mode"
+      bath1_relaxmode_on:
+        default: false
+        name: "Bath1 Relax Mode"
+        icon: mdi:bathtub-outline
+      enterance_awaymode:
+        default: false
+        name: "Entrance Away Mode"
+        icon: mdi:shield-home-outline
+      common_midnightmode_on:
+        default: false
+        name: "Common Midnight Mode"
+      common_repairmode_on:
+        default: false
+        name: "Repair Mode"
+        icon: mdi:tools
+      cooking_mode:
+        default: false
+        name: "Cooking Mode"
+        icon: mdi:chef-hat
+      cooking_timer_toggle:
+        default: false
+        name: "Cooking Timer Toggle"
+        icon: mdi:timer-play
+
+    input_selects:
+      room3_lastlight:
+        options: [both, l1, l2, none]
+        default: both
+        name: "Room3 Last Light"
+      bath1_relaxmode_colortheme:
+        options:
+          - spa purple
+          - forest green
+          - ocean blue
+          - warm pumpkin
+        default: spa purple
+        name: "Bath1 Relax Mode Color"
+        icon: mdi:palette
+      home_mode:
+        options: [Comfort, Eco]
+        default: Comfort
+        name: "Home Mode"
+        icon: mdi:leaf
+
+    input_datetimes:
+      room3_sleepmode_off:
+        has_date: false
+        has_time: true
+        default: "07:00:00"
+        name: "Room3 Wake Time"
+        icon: mdi:account-clock-outline
+
+    timers:
+      room3_manualmode_timer:
+        duration: "00:05:00"
+        name: "Room3 Manual Mode Timer"
+      kitchen_manualmode_timer:
+        duration: "00:05:00"
+        name: "Kitchen Manual Mode Timer"
+      living_manualmode_timer:
+        duration: "00:05:00"
+        name: "Living Manual Mode Timer"
+      room3_napmode_timer:
+        duration: "00:20:00"
+        name: "Room3 Nap Timer"
+      cooking_mode_timer:
+        duration: "00:05:00"
+        name: "Cooking Mode Timer"
+
+    template_sensors:
+      apartment_unit_id:
+        state: ""
+        name: "Apartment Unit ID"
+        unique_id: "apartment_unit_id_sensor"
+
+# ---------------------------------------------------------------------------
+# Room3
+# ---------------------------------------------------------------------------
+room3_room_core:
+  module: base.room_core
+  class: RoomAutomationCore
+  config:
+    room_id: "room3"
+    room_name: "Room 3"
+    room_number: 3
+    guard_entity: "input_boolean.common_repairmode_on"
+    tokens:
+      room_label: "Room 3"
+    features:
+      manual_mode:
+        type: manual_mode
+        manual_mode_boolean: "input_boolean.room3_manualmode_on"
+        timer_entity: "timer.room3_manualmode_timer"
+        physical_switches:
+          - "switch.room3_l1_l1"
+          - "switch.room3_l1_l2"
+        radar_sensor: "binary_sensor.room3_m1_radar_target"
+        radar_timeout: 300
+        timer_duration_day: "00:30:00"
+        timer_duration_night: "00:10:00"
+        night_window:
+          start: 23
+          end: 7
+        pulse_manual_toggle: true
+        require_physical_context: true
+
+      counter_presence:
+        type: counter_presence_lighting
+        people_counter: "number.room3_c1_people"
+        manual_mode_boolean: "input_boolean.room3_manualmode_on"
+        sleep_mode_boolean: "input_boolean.room3_sleepmode_on"
+        presence_sensors:
+          - "binary_sensor.room3_m1_radar_target"
+          - "binary_sensor.room3_m2_radar_target"
+        last_light_select: "input_select.room3_lastlight"
+        default_lights:
+          - "light.room3_l1_1"
+          - "light.room3_l1_2"
+          - "light.room3_l2_1"
+          - "light.room3_l2_2"
+        light_map:
+          both:
+            - "light.room3_l1_1"
+            - "light.room3_l1_2"
+            - "light.room3_l2_1"
+            - "light.room3_l2_2"
+          l1:
+            - "light.room3_l1_1"
+            - "light.room3_l1_2"
+          l2:
+            - "light.room3_l2_1"
+            - "light.room3_l2_2"
+          none:
+            - "light.room3_l1_1"
+            - "light.room3_l1_2"
+            - "light.room3_l2_1"
+            - "light.room3_l2_2"
+        counter_threshold: 0.5
+        absence_duration: 60
+        force_off_duration: 60
+        safety_check_interval: 60
+
+      light_correction:
+        type: light_correction
+        people_counter: "number.room3_c1_people"
+        primary_sensor: "binary_sensor.room3_m1_radar_target"
+        secondary_sensor: "binary_sensor.room3_m2_radar_target"
+        counter_threshold: 0.5
+        counter_on_value: 1
+        counter_off_value: 0
+        correction_delay: 5
+        secondary_assert_duration: 5
+        secondary_clear_duration: 5
+
+      last_light_tracker:
+        type: last_light_tracker
+        select_entity: "input_select.room3_lastlight"
+        tracked_lights:
+          - id: "l1"
+            entity_id: "light.room3_l1_1"
+          - id: "l2"
+            entity_id: "light.room3_l2_1"
+        both_option: "both"
+        none_option: "none"
+
+      sleep_light:
+        type: sleep_light
+        radar_sensor: "binary_sensor.room3_m1_radar_target"
+        sleepmode_boolean: "input_boolean.room3_sleepmode_on"
+        sublight_entity: "light.room3_l1_1"
+        start_time: "20:00:00"
+        end_time: "06:00:00"
+        duration: 180
+        brightness_pct: 5
+        color_temp_kelvin: 2000
+        transition: 1
+
+      sleepmode_off:
+        type: sleepmode_off
+        sleepmode_off_time_sensor: "input_datetime.room3_sleepmode_off"
+        sleepmode_boolean: "input_boolean.room3_sleepmode_on"
+        manual_mode_entities:
+          - "input_boolean.room3_manualmode_on"
+        light_entities:
+          - "light.room3_l1_1"
+          - "light.room3_l1_2"
+          - "light.room3_l2_1"
+          - "light.room3_l2_2"
+        notify_service: "notify.mobile_app_beoms_phone"
+        weather_entity: "weather.forecast_home"
+        notification_title: "좋은 아침입니다!"
+        notification_message: "설정된 기상 시간이 되어 취침 모드가 해제되었습니다. 현재 날씨는 {state}, 기온 {temp}도, 습도 {humidity}% 입니다."
+        light_on_settings:
+          brightness_pct: 100
+          color_temp_kelvin: 6500
+          transition: 10
+
+      knob_control:
+        type: knob_control
+        action_sensor: "sensor.room3_switch_knob_action"
+        rotation_sensor: "sensor.room3_switch_knob_action_rotation_percent"
+        sublight_entity: "light.room3_l1_1"
+        color_index_input: "input_number.room_3_sublight_color_index"
+        nap_mode_boolean: "input_boolean.room3_napmode_on"
+        sleep_mode_boolean: "input_boolean.room3_sleepmode_on"
+        brightness_sensitivity: 0.5
+        color_temp_step: 10
+        min_color_temp: 2000
+        max_color_temp: 6500
+        color_list:
+          - [255, 0, 0]
+          - [0, 255, 0]
+          - [0, 0, 255]
+          - [255, 0, 255]
+          - [255, 255, 0]
+
+room3_sleep_mode:
+  module: base.sleep_mode_automation
+  class: SleepModeAutomation
+  config:
+    room_name: "room3"
+    guard_entity: "input_boolean.common_repairmode_on"
+    sleep_mode_boolean: "input_boolean.room3_sleepmode_on"
+    lights_to_control:
+      - "light.room3_l1_1"
+      - "light.room3_l1_2"
+      - "light.room3_l2_1"
+      - "light.room3_l2_2"
+    light_off_settings:
+      transition: 3
+    notify_service: "notify.mobile_app_beoms_phone"
+    notify_message_on: "취침모드가 설정되었습니다."
+    notify_message_off: "취침모드가 해제되었습니다."
+
+# ---------------------------------------------------------------------------
+# Bathrooms
+# ---------------------------------------------------------------------------
+bathroom1_room_core:
+  module: base.room_core
+  class: RoomAutomationCore
+  config:
+    room_id: "bath1"
+    room_name: "Bathroom 1"
+    guard_entity: "input_boolean.common_repairmode_on"
+    tokens:
+      room_label: "Bath 1"
+    features:
+      people_lighting:
+        type: bathroom_people_lighting
+        people_counter: "number.bath1_c1_people"
+        people_counter_status: "sensor.bath1_c1_status"
+        light_entity: ["light.bath1_l1_1", "light.bath1_l1_2", "light.bath1_l1_3"]
+        light_switches:
+          - "switch.bath1_l1"
+        fan_switch: "switch.bath1_f1"
+        humidity_sensor: "sensor.bath1_m1_humidity"
+        target_humidity_input: "input_number.bath1_default_targethumidity"
+        manual_mode_boolean: "input_boolean.bath1_manualmode_on"
+        radar_sensor: "binary_sensor.bath1_m1_radar_target"
+        default_delay: 4
+        radar_off_timeout: 5
+        switch_off_delay: 4
+        light_on_delay: 0.5
+        light_on_settings:
+          transition: 3
+        light_off_settings:
+          transition: 3
+
+      humidity_fan:
+        type: humidity_fan
+        humidity_sensor: "sensor.bath1_m1_humidity"
+        target_humidity_input: "input_number.bath1_default_targethumidity"
+        fan_switch: "switch.bath1_f1"
+        low_threshold_duration: 60
+
+      shower_mode:
+        type: shower_mode
+        humidity_sensor: "sensor.bath1_m1_humidity"
+        presence_sensor: "binary_sensor.bath1_m1_radar_target"
+        fan_switch: "switch.bath1_f1"
+        light_switches:
+          - "switch.bath1_l1"
+        shower_detection:
+          spike_threshold: 15
+          absolute_threshold: 65
+          detection_window: 120
+        shower_end_detection:
+          humidity_threshold: 10
+          min_duration: 300
+          stable_time: 180
+        shower_light_settings:
+          transition: 0.5
+          brightness_pct: 100
+        keep_fan_on_after_shower: true
+
+      light_settings:
+        type: light_settings_sync
+        light_entity: ["light.bath1_l1_1", "light.bath1_l1_2", "light.bath1_l1_3"]
+        brightness_slider: "input_number.bath1_default_brightness"
+        temperature_slider: "input_number.bath1_default_temperature"
+        default_brightness: 100
+        default_temperature: 6500
+        preview_when_all_off: true
+        preview_seconds: 5
+
+bathroom2_room_core:
+  module: base.room_core
+  class: RoomAutomationCore
+  config:
+    room_id: "bath2"
+    room_name: "Bathroom 2"
+    guard_entity: "input_boolean.common_repairmode_on"
+    tokens:
+      room_label: "Bath 2"
+    features:
+      people_lighting:
+        type: bathroom_people_lighting
+        people_counter: "number.bath2_c1_people"
+        people_counter_status: "sensor.bath2_c1_status"
+        light_entity: ["light.bath2_l1_1", "light.bath2_l1_2"]
+        light_switches:
+          - "switch.bath2_l1"
+        fan_switch: "switch.bath2_f1"
+        humidity_sensor: "sensor.bathroom2_humidity"
+        target_humidity_input: "input_number.bath2_default_targethumidity"
+        manual_mode_boolean: "input_boolean.bath2_manualmode_on"
+        radar_sensor: "binary_sensor.bath1_m1_radar_target"
+        default_delay: 4
+        radar_off_timeout: 5
+        switch_off_delay: 5
+        fan_off_delay: 0
+        light_on_delay: 1
+        light_on_settings:
+          transition: 3
+        light_off_settings:
+          transition: 2
+        fan_requires_humidity: false
+
+      shower_mode:
+        type: shower_mode
+        humidity_sensor: "sensor.bathroom2_humidity"
+        presence_sensor: "binary_sensor.bath1_m1_radar_target"
+        fan_switch: "switch.bath2_f1"
+        light_switches:
+          - "switch.bath2_l1"
+          - "switch.bath2_f1"
+        shower_detection:
+          spike_threshold: 12
+          absolute_threshold: 60
+          detection_window: 90
+        shower_end_detection:
+          humidity_threshold: 8
+          min_duration: 240
+          stable_time: 120
+        shower_light_settings:
+          transition: 0.5
+          brightness_pct: 90
+        keep_fan_on_after_shower: true
+
+      light_settings:
+        type: light_settings_sync
+        light_entity: ["light.bath2_l1_1", "light.bath2_l1_2"]
+        default_brightness: 100
+        default_temperature: 6500
+
+# ---------------------------------------------------------------------------
+# Kitchen / Bar / Balcony / Living
+# ---------------------------------------------------------------------------
+kitchen_room_core:
+  module: base.room_core
+  class: RoomAutomationCore
+  config:
+    room_id: "kitchen"
+    room_name: "Kitchen"
+    guard_entity: "input_boolean.common_repairmode_on"
+    tokens:
+      room_label: "Kitchen"
+    features:
+      manual_mode:
+        type: manual_mode
+        manual_mode_boolean: "input_boolean.kitchen_manualmode_on"
+        trigger_switches:
+          - "switch.kitchen_l1"
+          - "switch.kitchen_l2"
+        timer_entity: "timer.kitchen_manualmode_timer"
+        timer_duration: "00:20:00"
+        timer_restart_on_manual_off: true
+        require_physical_context: true
+        require_device_source: true
+        indicator_switches:
+          - "switch.kitchen_m1_indicator"
+
+      presence_lighting:
+        type: presence_lighting
+        presence_sensor: "binary_sensor.kitchen_m1_presence"
+        manual_mode_boolean: "input_boolean.kitchen_manualmode_on"
+        light_switches:
+          - "light.kitchen_l1_1"
+          - "light.kitchen_l1_2"
+          - "light.kitchen_l1_3"
+          - "light.kitchen_l1_4"
+          - "light.kitchen_l1_5"
+          - "light.kitchen_l1_6"
+        light_toggle_delay: 0.2
+        absence_timeout: 0
+        home_mode_timeout_condition:
+          mode: "Comfort"
+          timeout: 300
+        safety_check_interval: 180
+
+bar_room_core:
+  module: base.room_core
+  class: RoomAutomationCore
+  config:
+    room_id: "bar"
+    room_name: "Bar"
+    guard_entity: "input_boolean.common_repairmode_on"
+    tokens:
+      room_label: "Bar"
+    features:
+      presence_lighting:
+        type: presence_lighting
+        presence_sensor: "binary_sensor.bar_m1_presence"
+        manual_mode_boolean: "input_boolean.kitchen_manualmode_on"
+        light_entity: "light.bar_lights"
+        light_settings:
+          transition: 3
+        absence_timeout: 0
+        home_mode_timeout_condition:
+          mode: "Comfort"
+          timeout: 300
+        safety_check_interval: 180
+
+      light_settings_sync:
+        type: light_settings_sync
+        light_entity: "light.bar_lights"
+        brightness_slider: "input_number.bar_default_brightness"
+        temperature_slider: "input_number.bar_default_temperature"
+        default_brightness: 100
+        default_temperature: 6500
+
+balcony1_room_core:
+  module: base.room_core
+  class: RoomAutomationCore
+  config:
+    room_id: "balcony1"
+    room_name: "Balcony 1"
+    guard_entity: "input_boolean.common_repairmode_on"
+    features:
+      balcony_presence:
+        type: outdoor_presence_switch
+        presence_sensors:
+          - "binary_sensor.balcony1_m2_occupancy"
+        switch_entities:
+          - "switch.balcony1_l1"
+        sun_entity: "sun.sun"
+        required_sun_state: "below_horizon"
+
+room2_room_core:
+  module: base.room_core
+  class: RoomAutomationCore
+  config:
+    room_id: "room2"
+    room_name: "Room 2"
+    guard_entity: "input_boolean.common_repairmode_on"
+    features:
+      presence_lighting:
+        type: presence_lighting
+        presence_sensor: "binary_sensor.room2_m1_presence"
+        manual_mode_boolean: "input_boolean.common_repairmode_on"
+        respect_manual_mode: false
+        light_switches:
+          - "switch.room2_l2"
+        absence_timeout: 0
+        safety_check_interval: 0
+
+living_room_core:
+  module: base.room_core
+  class: RoomAutomationCore
+  config:
+    room_id: "living"
+    room_name: "Living Room"
+    guard_entity: "input_boolean.common_repairmode_on"
+    tokens:
+      room_label: "Living"
+    features:
+      manual_mode:
+        type: manual_mode
+        manual_mode_boolean: "input_boolean.living_manualmode_on"
+        trigger_switches:
+          - "switch.living_switch_main_l1"
+          - "switch.living_switch_main_l2"
+          - "switch.living_switch_main_l3"
+          - "switch.living_switch_main_l4"
+        timer_entity: "timer.living_manualmode_timer"
+        timer_duration: "00:10:00"
+        find_switch: "switch.living_m1_find_switch"
+        require_physical_context: true
+        require_device_source: false
+        pulse_manual_toggle: false
+
+      presence_lighting:
+        type: presence_lighting
+        presence_sensor: "binary_sensor.living_m1_presence"
+        manual_mode_boolean: "input_boolean.living_manualmode_on"
+        light_entity: "light.living_lights_main1"
+        light_settings:
+          brightness: 100
+          transition: 3
+        extra_off_entities:
+          - "switch.living_switch_main_l2"
+          - "switch.living_switch_main_l4"
+          - "light.living_l3_1"
+          - "light.living_l3_2"
+          - "light.living_l3_3"
+        absence_timeout: 60
+        home_mode_timeout_condition:
+          mode: "Comfort"
+          timeout: 360
+        illuminance_sensor: "sensor.living_m1_illuminance"
+        illuminance_threshold: 100
+        midnight_mode_boolean: "input_boolean.common_midnightmode_on"
+        safety_check_interval: 180
+
+# ---------------------------------------------------------------------------
+# Special Modes
+# ---------------------------------------------------------------------------
+nap_mode:
+  module: base.mode_core
+  class: ModeAutomationCore
+  config:
+    mode_id: nap_mode
+    mode_name: "Nap Mode"
+    guard_entity: "input_boolean.common_repairmode_on"
+    features:
+      nap_control:
+        type: mode_nap
+        toggle_entity: input_boolean.room3_napmode_on
+        duration_entity: input_number.nap_duration_input
+        timer_id: room3_napmode_timer
+        helper_app: null
+        target_lights:
+          - "light.room3_l1_1"
+          - "light.room3_l1_2"
+          - "light.room3_l2_1"
+          - "light.room3_l2_2"
+        rooms:
+          - name: "Room 3"
+            lights:
+              - "light.room3_l1_1"
+              - "light.room3_l1_2"
+              - "light.room3_l2_1"
+              - "light.room3_l2_2"
+            start_action: turn_off
+            end_action: turn_on
+            end_settings:
+              brightness_pct: 100
+              color_temp_kelvin: 6500
+              transition: 10
+        on_settings:
+          brightness_pct: 5
+          color_temp_kelvin: 2200
+          transition: 3
+        media_player: media_player.google_home_mini
+        volume_level: 0.3
+        tts_service: tts.speak
+        tts_target: tts.google_translate_en_com
+        tts_media_player: media_player.google_home_mini
+        tts_language: ko
+        tts_start_message: "낮잠 모드가 {minutes}분 동안 설정되었습니다. 편안한 시간 되세요."
+        tts_end_message: "낮잠 시간이 끝났습니다. 일어날 시간입니다!"
+        notify_enabled: true
+        notify_service: notify.mobile_app_beoms_phone
+        notify_title: "낮잠 모드"
+        notify_message: "낮잠 시간이 끝났습니다! 일어날 시간입니다!"
+        notify_data:
+          critical: 1
+          priority: high
+        notify_start_enabled: true
+        notify_start_title: "낮잠 모드"
+        notify_start_message: "낮잠 모드가 {minutes}분 동안 설정되었습니다."
+
+living_movie_mode:
+  module: base.mode_core
+  class: ModeAutomationCore
+  config:
+    mode_id: living_movie_mode
+    mode_name: "Living Movie Mode"
+    guard_entity: "input_boolean.common_repairmode_on"
+    features:
+      movie_scene:
+        type: mode_media_viewing
+        toggle_entity: input_boolean.living_moviemode_on
+        media_player: media_player.geosil_tv1
+        start_delay: 5
+        resume_delay: 2
+        manual_mode_boolean: input_boolean.living_manualmode_on
+        snapshot_scene_id: living_before_movie
+        snapshot_entities:
+          - "light.living_l3_1"
+          - "light.living_l3_2"
+          - "light.living_l3_3"
+          - switch.living_switch_main_l2
+        lights_off_targets:
+          - "light.living_l3_1"
+          - "light.living_l3_2"
+          - "light.living_l3_3"
+        lights_off_settings:
+          transition: 3
+        switches_off_targets:
+          - switch.living_switch_main_l2
+        switches_on_targets:
+          - switch.living_switch_main_l4
+        hall_light_entity:
+          - "light.living_l3_1"
+          - "light.living_l3_2"
+          - "light.living_l3_3"
+        hall_pause_brightness_pct: 100
+        hall_pause_transition: 3
+
+away_mode:
+  module: base.mode_core
+  class: ModeAutomationCore
+  config:
+    mode_id: away_mode
+    mode_name: "Away Mode"
+    guard_entity: "input_boolean.common_repairmode_on"
+    features:
+      family_presence:
+        type: mode_away
+        people:
+          - person.beom
+          - person.family1
+          - person.family2
+        mode_boolean: input_boolean.enterance_awaymode
+        confirm_delay: 300
+        notify_service: notify.mobile_app_beoms_phone
+        notify_away_title: "🚩 가족 전체 외출"
+        notify_away_message: "모든 가족이 외출한 것이 확인되어 외출 모드를 활성화합니다."
+        notify_return_title: "🏠 귀가 확인"
+        notify_return_message: "가족 중 누군가가 집에 도착하여 외출 모드를 해제합니다."
+
+entry_alarm:
+  module: base.mode_core
+  class: ModeAutomationCore
+  config:
+    mode_id: entry_alarm
+    mode_name: "Entry Alarm"
+    guard_entity: "input_boolean.common_repairmode_on"
+    features:
+      door_alert:
+        type: mode_door_alert
+        door_sensor: binary_sensor.entrance_d1_contact
+        light_entity: light.bar_lights
+        notify_service: notify.mobile_app_beoms_phone
+        notify_title: "🚨 현관문 보안 경보"
+        open_duration: 60
+        open_message: "현관문이 1분 이상 열려 있습니다! 즉시 확인하세요."
+        close_message: "✅ 현관문이 정상적으로 닫혔습니다."
+        sun_entity: sun.sun
+        night_state: below_horizon
+        night_switches:
+          - switch.living_switch_main_l3
+        night_lights:
+          - "light.living_l3_1"
+          - "light.living_l3_2"
+          - "light.living_l3_3"
+        night_light_settings:
+          transition: 5
+        day_open_notify_service: notify.mobile_app_beoms_phone
+        day_open_notify_title: "📩 현관문 열림"
+        day_open_notify_message: "현관문이 열렸습니다."
+        open_notify_service: notify.mobile_app_beoms_phone
+        open_notify_title: "🚨 현관문 보안 경보"
+        tts_service: tts.speak
+        tts_target: tts.google_translate_en_com
+        tts_media_player: media_player.google_home_mini
+        tts_language: ko
+        tts_message: "경고! 현관문이 열려있습니다!"
+        flash_color: [255, 0, 0]
+        flash_brightness: 100
+        flash_cycles: 3
+        flash_interval: 1
+        flash_reset_color: [255, 255, 255]
+        flash_reset_brightness: 100
+        close_notify_service: notify.mobile_app_beoms_phone
+        close_notify_title: "✅ 현관문"
+        close_notify_message: "✅ 현관문이 정상적으로 닫혔습니다."
+        media_stop_entity: media_player.google_home_mini
+        close_reset_light: light.bar_lights
+        close_reset_settings:
+          brightness_pct: 100
+          rgb_color: [255, 255, 255]
+          transition: 5
+
+welcome_mode:
+  module: base.mode_core
+  class: ModeAutomationCore
+  config:
+    mode_id: welcome_mode
+    mode_name: "Welcome Mode"
+    guard_entity: "input_boolean.common_repairmode_on"
+    features:
+      door_open_scene:
+        type: mode_presence_trigger
+        presence_entity: binary_sensor.entrance_d1_contact
+        triggers:
+          - to: "on"
+        actions:
+          - type: call_service
+            service: switch/turn_on
+            target:
+              entity_id: switch.living_switch_main_l2
+          - type: call_service
+            service: light/turn_on
+            target:
+              entity_id:
+                - light.living_l3_1
+                - light.living_l3_2
+                - light.living_l3_3
+            data:
+              transition: 5
+              color_temp_kelvin: 6500
+              brightness_pct: 100
+
+      door_closed_scene_clear:
+        type: mode_presence_trigger
+        presence_entity: binary_sensor.entrance_d1_contact
+        triggers:
+          - to: "off"
+            duration: 180
+        conditions:
+          - type: state
+            entity_id: binary_sensor.living_m1_presence
+            state: "off"
+        actions:
+          - type: call_service
+            service: switch/turn_off
+            target:
+              entity_id: switch.living_switch_main_l2
+          - type: call_service
+            service: light/turn_off
+            target:
+              entity_id:
+                - light.living_l3_1
+                - light.living_l3_2
+                - light.living_l3_3
+            data:
+              transition: 3
+
+cooking_mode:
+  module: base.mode_core
+  class: ModeAutomationCore
+  config:
+    mode_id: cooking_mode
+    mode_name: "Cooking Mode"
+    guard_entity: "input_boolean.common_repairmode_on"
+    features:
+      induction_monitor:
+        type: mode_cooking
+        power_sensor: binary_sensor.jeongi_kugtab_power
+        mode_boolean: input_boolean.cooking_mode
+        timer_toggle_boolean: input_boolean.cooking_timer_toggle
+        timer_entity: timer.cooking_mode_timer
+        duration_input: input_number.cooking_timer_minutes
+        notify_service: notify.mobile_app_beoms_phone
+        notify_start_message: "🍳 요리 타이머가 {minutes}분 동안 설정되었습니다."
+        notify_end_message: "🚨 요리 시간이 끝났습니다! 인덕션을 확인하세요!"
+        notify_end_data:
+          critical: 1
+          priority: high
+        blink_light: light.bar_lights
+        blink_effect: blink
+        snapshot_scene_id: bar_light_cooking_snapshot
+        snapshot_entities:
+          - light.bar_lights
+        restore_delay: 2
+
+bath1_relax_mode:
+  module: base.mode_core
+  class: ModeAutomationCore
+  config:
+    mode_id: bath1_relax_mode
+    mode_name: "Bath1 Relax Mode"
+    guard_entity: "input_boolean.common_repairmode_on"
+    features:
+      relax_scene:
+        type: mode_relax_lighting
+        toggle_entity: input_boolean.bath1_relaxmode_on
+        color_select: input_select.bath1_relaxmode_colortheme
+        light_entity: ["light.bath1_l1_1", "light.bath1_l1_2", "light.bath1_l1_3"]
+        light_switch: switch.bath1_l1
+        light_on_delay: 1
+        transition: 3
+
+repair_mode:
+  module: base.mode_core
+  class: ModeAutomationCore
+  config:
+    mode_id: repair_mode
+    mode_name: "Repair Mode"
+    features:
+      automation_pause:
+        type: mode_repair
+        toggle_entity: input_boolean.common_repairmode_on
+        manual_mode_entities:
+          - input_boolean.room3_manualmode_on
+          - input_boolean.kitchen_manualmode_on
+          - input_boolean.living_manualmode_on
+          - input_boolean.bath1_manualmode_on
+          - input_boolean.bath2_manualmode_on
+        fan_control:
+          mode: disable
+          entities:
+            - switch.bath1_f1
+            - switch.bath2_f1
+        notify_service: notify.mobile_app_beoms_phone
+        notify_on_title: "🛠️ Repair Mode 활성화"
+        notify_on_message: "전체 자동화가 일시정지되었습니다. 수동 제어 모드입니다."
+        notify_off_title: "✅ Repair Mode 해제"
+        notify_off_message: "모든 자동화 시스템이 정상 복구되었습니다."
+        ignore_guard: true

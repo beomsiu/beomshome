@@ -1,0 +1,17 @@
+room2_room_core:
+  module: base.room_core
+  class: RoomAutomationCore
+  config:
+    room_id: "room2"
+    room_name: "Room 2"
+    guard_entity: "input_boolean.common_repairmode_on"
+    features:
+      presence_lighting:
+        type: presence_lighting
+        presence_sensor: "binary_sensor.room2_m1_presence"
+        manual_mode_boolean: "input_boolean.common_repairmode_on"
+        respect_manual_mode: false
+        light_switches:
+          - "switch.room2_l2"
+        absence_timeout: 0
+        safety_check_interval: 0
