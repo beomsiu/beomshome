@@ -1,0 +1,38 @@
+away_mode_automation:
+  module: global_state_controller
+  class: AwayModeController
+  people:
+    - person.beoms_hio
+    - person.beomsu
+  away_mode_boolean: input_boolean.enterance_awaymode
+  notification_target: mobile_app_beoms_phone
+  away_delay: 300
+
+live_light_sync_automation:
+  module: global_state_controller
+  class: GlobalLightSyncController
+  sliders:
+    - input_number.global_brightness
+    - input_number.global_color_temp
+
+entrance_security_automation:
+  module: global_state_controller
+  class: EntranceSecurityController
+  door_sensor: binary_sensor.entrance_d1_contact
+  presence_sensor: binary_sensor.living_m1_presence
+  welcome_lights:
+    - light.living_lights1
+    - light.living_lights2
+    - light.living_lights3
+  alert_lights:
+    - light.bar_lights
+  media_player: media_player.google_home_mini
+  notify_target: mobile_app_beoms_phone
+
+central_notification_engine:
+  module: notification_engine
+  class: NotificationEngine
+  default_notify_target: mobile_app_beoms_phone
+  default_tts_player: media_player.google_home_mini
+  quiet_start_hour: 23
+  quiet_end_hour: 7

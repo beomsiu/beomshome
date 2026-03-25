@@ -1,17 +1,19 @@
-secrets: /conf/secrets.yaml
-
 appdaemon:
-  latitude: 37.085
-  longitude: 127.05
-  elevation: 30
   time_zone: Asia/Seoul
+  latitude: 37.5665
+  longitude: 126.9780
+  elevation: 0
   plugins:
     HASS:
       type: hass
-      ha_url: http://localhost:8123
-      token: !secret ha_token
+      ha_url: http://127.0.0.1:8123
+      token: ""
+
 http:
   url: http://0.0.0.0:5050
+
 admin:
+
 api:
+
 hadashboard:
